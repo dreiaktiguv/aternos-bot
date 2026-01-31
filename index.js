@@ -9,8 +9,8 @@ catch {
 const mineflayer = require('mineflayer');
 
 // ✅ CONFIG
-const IP = 'ubaid.mcsh.io';       // Minecraft server IP
-const PORT = 25565;              // Server port
+const IP = 'dreiaktiguv-HDPE.aternos.me';       // Minecraft server IP
+const PORT = 26432;              // Server port
 const WEB_PORT = process.env.PORT || 3000; // Fake port for Render/web host
 const PASSWORD = 'Mishra@123';
 
@@ -27,7 +27,7 @@ function log(msg) {
 
 // 🎲 Generate new name
 function randomUsername() {
-  return 'BOT_' + Math.floor(Math.random() * 100000);
+  return 'BOT_AFK_' + Math.floor(Math.random() * 10);
 }
 
 // 🤖 Infinite bot reconnect loop
