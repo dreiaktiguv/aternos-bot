@@ -1,25 +1,20 @@
 {
-  "name": "skybot-rejoiner",
+  "name": "bot-ve-si-thai",
   "version": "1.0.0",
-  "description": "Auto-rejoining Minecraft bot with Mineflayer using random usernames",
+  "description": "Bot ve si Minecraft cho Thai",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "mineflayer": "^4.6.2"
+    "mineflayer": "latest",
+    "mineflayer-pathfinder": "latest",
+    "mineflayer-armor-manager": "latest",
+    "mineflayer-auto-eat": "latest",
+    "express": "latest",
+    "vec3": "latest"
   },
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "keywords": [
-    "minecraft",
-    "mineflayer",
-    "bot",
-    "reconnect",
-    "auto-rejoin",
-    "skybot"
-  ],
-  "author": "Aman Mishra",
-  "license": "MIT"
+  "author": "Thai",
+  "license": "ISC"
 }
