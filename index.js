@@ -1,77 +1,93 @@
-const { execSync } = require('child_process');
-const http = require('http');
+const mineflayer = require('mineflayer')
+const { pathfinder, Movements, goals: { GoalFollow, GoalNear } } = require('mineflayer-pathfinder')
+const armorManager = require('mineflayer-armor-manager')
+const autoeat = require('mineflayer-auto-eat').plugin
+const autofish = require('mineflayer-autofish') // Thư viện câu cá mới
+const express = require('express')
+const app = express()
 
-try { require.resolve('mineflayer'); }
-catch {
-  console.log('📦 Installing mineflayer...');
-  execSync('npm install mineflayer', { stdio: 'inherit' });
-}
-const mineflayer = require('mineflayer');
+// --- CẤU HÌNH ---
+const MASTER_NAME = 'Thai8424019'
+const PASSWORD = 'dreiaktiguv'
+const SERVER_IP = 'dreiaktiguv-HDPE.aternos.me'
+const SERVER_PORT = 26432
 
-// ✅ CONFIG
-const IP = 'ubaid.mcsh.io';       // Minecraft server IP
-const PORT = 25565;              // Server port
-const WEB_PORT = process.env.PORT || 3000; // Fake port for Render/web host
-const PASSWORD = 'Mishra@123';
+const bot = mineflayer.createBot({
+  host: SERVER_IP,
+  port: SERVER_PORT,
+  username: 'VeSi_Thai',
+  version: false
+})
 
-let logs = [];
-let bot;
+bot.loadPlugin(pathfinder)
+bot.loadPlugin(armorManager)
+bot.loadPlugin(autoeat)
+bot.loadPlugin(autofish) // Kích hoạt plugin câu cá
 
-// 🧠 Log helper
-function log(msg) {
-  const line = `[${new Date().toISOString()}] ${msg}`;
-  console.log(line);
-  logs.push(line);
-  if (logs.length > 100) logs.shift();
-}
+let currentMode = 'protect' 
+let autoCollect = true 
 
-// 🎲 Generate new name
-function randomUsername() {
-  return 'BOT_' + Math.floor(Math.random() * 100000);
-}
+// --- WEB DASHBOARD ---
+app.get('/', (req, res) => {
+  res.send(`
+    <body style="text-align:center; background:#1a1a1a; color:white; font-family:sans-serif; padding:20px;">
+        <h1 style="color:#2ecc71;">🤖 VE SI PRO + FISH</h1>
+        <div style="background:#333; padding:10px; border-radius:10px; margin-bottom:20px;">
+            <p>Chế độ: <strong>${currentMode.toUpperCase()}</strong></p>
+            <p>❤️ Máu: ${Math.round(bot.health || 0)} | 🍖 Đói: ${Math.round(bot.food || 0)}</p>
+        </div>
+        <button style="padding:15px; background:green; color:white;" onclick="location.href='/set/protect'">🛡️ BẢO VỆ</button>
+        <button style="padding:15px; background:blue; color:white;" onclick="location.href='/set/fish'">🎣 CÂU CÁ</button>
+        <button style="padding:15px; background:red; color:white;" onclick="location.href='/set/hunt'">⚔️ SĂN NGƯỜI</button>
+        <button style="padding:15px; background:orange;" onclick="location.href='/toggle/collect'">📦 NHẶT ĐỒ: ${autoCollect ? 'BẬT' : 'TẮT'}</button>
+    </body>
+  `)
+})
+app.get('/set/:mode', (req, res) => { 
+    currentMode = req.params.mode;
+    if (currentMode === 'fish') {
+        bot.autofish.start();
+        bot.chat('Em đi câu cá đây đại ca!');
+    } else {
+        bot.autofish.stop();
+    }
+    res.redirect('/'); 
+})
+app.get('/toggle/collect', (req, res) => { autoCollect = !autoCollect; res.redirect('/'); })
+app.listen(3000)
 
-// 🤖 Infinite bot reconnect loop
-function startBotLoop() {
-  const username = randomUsername();
-  log(`🔁 Connecting as ${username}...`);
+// --- VÒNG LẶP HÀNH ĐỘNG ---
+setInterval(() => {
+  if (!bot.entity || currentMode === 'fish') return // Nếu đang câu cá thì đứng yên
 
-  bot = mineflayer.createBot({
-    host: IP,
-    port: PORT,
-    username
-  });
+  const master = bot.players[MASTER_NAME]?.entity
+  if (bot.autoEat.isEating) return
 
-  bot.on('spawn', () => {
-    log(`✅ ${username} spawned`);
-    setTimeout(() => bot.chat(`/register ${PASSWORD} ${PASSWORD}`), 2000);
-    setTimeout(() => bot.chat(`/login ${PASSWORD}`), 4000);
-  });
+  // 1. Tấn công bảo vệ
+  const target = bot.nearestEntity(e => {
+    const dist = master ? e.position.distanceTo(master.position) : 100
+    if (currentMode === 'protect') return (e.type === 'hostile' || e.type === 'mob') && dist < 10
+    return false
+  })
 
-  bot.on('kicked', reason => {
-    log(`🚫 Kicked: ${reason}`);
-  });
-
-  bot.on('error', err => {
-    log(`⚠️ Error: ${err.message}`);
-  });
-
-  bot.on('end', () => {
-    log(`🔌 Bot disconnected. Rejoining in 5s...`);
-    setTimeout(startBotLoop, 5000);
-  });
-}
-
-startBotLoop();
-
-// 🌐 Minimal Web Server
-http.createServer((req, res) => {
-  if (req.url === '/logs') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end(logs.join('\n'));
-  } else {
-    res.writeHead(200);
-    res.end('Bot is running.\nUse /logs to view output.');
+  if (target) {
+    bot.pathfinder.setGoal(new GoalNear(target.position.x, target.position.y, target.position.z, 1))
+    bot.attack(target)
+    return
   }
-}).listen(WEB_PORT, () => {
-  log(`🌍 Web server running on port ${WEB_PORT}`);
-});
+
+  // 2. Theo dõi chủ nhân
+  if (master && currentMode === 'protect' && bot.entity.position.distanceTo(master.position) > 3) {
+    bot.pathfinder.setGoal(new GoalFollow(master, 2), true)
+  }
+}, 500)
+
+// Tự động đăng nhập & ném đồ (giữ nguyên như cũ)
+bot.on('chat', async (username, message) => {
+  if (username === MASTER_NAME && message === 'vutdo') {
+    for (const item of bot.inventory.items()) await bot.tossStack(item)
+  }
+})
+bot.on('messagestr', (m) => { if (m.includes('/login')) bot.chat(`/login ${PASSWORD}`) })
+bot.on('death', () => setTimeout(() => bot.respawn(), 2000))
+      
