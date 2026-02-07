@@ -1,17 +1,18 @@
 {
-  "name": "bot-ve-si-thai",
+  "name": "bot-ve-si-thai-pro",
   "version": "1.0.0",
-  "description": "Bot ve si Minecraft cho Thai",
+  "description": "Bot ve si, tu dong an va cau ca cho Thai",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "monitor": "pm2 logs bot-thai"
   },
   "dependencies": {
     "mineflayer": "latest",
     "mineflayer-pathfinder": "latest",
     "mineflayer-armor-manager": "latest",
     "mineflayer-auto-eat": "latest",
+    "mineflayer-autofish": "latest",
     "express": "latest",
     "vec3": "latest"
   },
